@@ -1,0 +1,38 @@
+{
+  "columns": [
+    "average_completion_rate",
+    "average_quiz_score",
+    "normalized_engagement_time",
+    "average_rating",
+    "normalized_click_count",
+    "normalized_video_view_count",
+    "normalized_access_frequency",
+    "normalized_session_duration",
+    "difficulty_preference",
+    "recent_activity_score"
+  ],
+  "min": [
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    2.0,
+    0.0,
+    1.0,
+    0.0,
+    0.5,
+    0.000687285210005939
+  ],
+  "max": [
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    16.0,
+    0.0,
+    1.0,
+    0.0,
+    0.5,
+    1.0
+  ]
+}

@@ -1,0 +1,982 @@
+A hybrid actor–critic and BERT 
+framework for intelligent course 
+recommendation in IoT-aware 
+e-learning systems
+Xia Chunqin1,2 & Wu Peixi3
+The necessity for recommendation models that can capture both semantic information and device-
+mediated learner interactions has increased due to the rapid growth of IoT-aware e-learning 
+environments. IoT-enhanced learning in this context refers to intelligent learning platforms that 
+continuously create and log heterogeneous interaction data, including session dynamics, access 
+patterns across linked devices, and engagement behaviors. This work introduces a coherent hybrid 
+framework that combines an Actor–Critic reinforcement learning agent optimized using Proximal 
+Policy Optimization (PPO) with BERT-based semantic encoding. By combining textual content with 
+context-aware interaction logs gathered from intelligent learning platforms, the method creates richer 
+learner representations. While a Mahalanobis distance module offers correlation-aware similarity 
+cues to enhance resilience under sparse and high-dimensional data, these representations allow the 
+Actor–Critic agent to constantly improve its recommendation policy. The usefulness of the suggested 
+framework for IoT-aware intelligent e-learning systems is demonstrated by experiments conducted on 
+three public MOOC datasets, which show steady improvements over robust baselines.
+Keywords Recommender systems, Deep reinforcement learning, BERT-based feature extraction, 
+Mahalanobis distance, Personalized learning, IoT-enabled education
+Massive Open Online Courses (MOOCs) have emerged as a transformative force in contemporary education 
+by democratizing access to high-quality learning resources for learners across geographic, cultural, and 
+socioeconomic boundaries1,2. Platforms such as Coursera, edX 3, and Udemy enable millions of individuals to 
+participate in flexible and self-directed learning experiences. However, the rapid growth of available courses 
+has led to substantial information overload, making it increasingly difficult for learners to identify educational 
+content that aligns with their goals, competencies, and interests4.
+Alongside this expansion, modern e-learning platforms have evolved into IoT-aware digital ecosystems 
+in which learning activities are mediated through interconnected devices and online infrastructures. These 
+environments continuously generate heterogeneous interaction signals, including session duration, access 
+frequency, temporal engagement patterns, and device-mediated usage logs 5,6. Although such data do not 
+necessarily originate from low-level physical sensors, they provide context-aware and behavior-rich information 
+that is widely regarded as a practical proxy for IoT-enhanced educational environments. At the same time, 
+the scale and diversity of these signals introduce significant challenges related to data heterogeneity, high 
+dimensionality, sparsity, and privacy preservation7.
+Traditional recommendation techniques, such as Collaborative Filtering (CF) and Content-Based Filtering 
+(CBF), have long served as foundational approaches for personalization in educational systems8,9. Despite their 
+effectiveness in static settings, these methods are limited in dynamic learning environments due to their reliance 
+on fixed preference assumptions and explicit feedback signals, such as ratings or clicks. Consequently, they often 
+suffer from data sparsity, cold-start issues, and limited adaptability to evolving learner behavior over time 10. 
+These limitations become more pronounced in IoT-aware learning platforms, where diverse and continuously 
+generated interaction signals require adaptive and sequential modeling strategies11.
+1Engineering Experimental Teaching Department, Nanjing University of Posts and Telecommunications, Nanjing 
+210023, China. 2National Experimental Teaching Demonstration Center for Electronic Science and Technology, 
+Nanjing University of Posts and Telecommunications, Nanjing 210023, China. 3Shanghai Huiyi Information 
+Technology Co., Ltd, Pudong New Area, Shanghai 200120, China. email: xiacq@njupt.edu.cn
+OPEN
+Scientific Reports |        (2026) 16:10259 1| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports
+
+To address these challenges, Deep Reinforcement Learning (DRL) has gained increasing attention as a 
+powerful framework for sequential decision-making in personalized recommendation systems12,13. By modeling 
+the recommendation process as a Markov Decision Process (MDP), DRL-based approaches enable continuous 
+interaction with learners and optimization of long-term engagement objectives. Within this paradigm, the 
+Actor–Critic architecture has demonstrated strong performance by jointly learning policy and value functions, 
+thereby achieving a balance between exploration and exploitation and improving training stability and sample 
+efficiency14,15.
+In parallel, advances in Transformer-based Natural Language Processing (NLP) have significantly enhanced 
+semantic understanding of textual data. In particular, the Bidirectional Encoder Representations from Transformers 
+(BERT) model has shown remarkable capability in extracting contextualized semantic representations from 
+unstructured text through bidirectional attention mechanisms 16. In educational recommendation scenarios, 
+such semantic representations are especially valuable for modeling course descriptions, learning objectives, and 
+textual feedback17. While Transformer-based models have been successfully applied to general recommendation 
+tasks, their integration with reinforcement learning for adaptive course recommendation especially within IoT-
+aware MOOC environments remains relatively underexplored18.
+Despite their promise, IoT-aware e-learning environments raise additional concerns related to privacy, 
+interpretability, and fairness. Continuous logging of learner interactions across connected platforms may expose 
+sensitive behavioral patterns, necessitating compliance with data protection regulations such as the General Data 
+Protection Regulation (GDPR)19. Moreover, ensuring transparency through Explainable Artificial Intelligence 
+(XAI) mechanisms is essential for fostering trust and acceptance of intelligent recommendation systems in 
+educational contexts20.
+In response to these challenges, this study presents a hybrid Personalized Course Recommendation (PCR) 
+framework grounded in Deep Reinforcement Learning. The proposed framework integrates BERT-based semantic 
+representations with IoT-aware, device-mediated learner interaction features and an Actor–Critic architecture 
+optimized using Proximal Policy Optimization (PPO). Unlike prior approaches that emphasize either semantic 
+modeling or behavioral personalization in isolation, the framework unifies content understanding, contextual 
+awareness, and adaptive policy learning within a single scalable architecture.
+The proposed system is designed to address key challenges in intelligent course recommendation within IoT-
+aware e-learning environments through the following objectives:
+• To capture rich semantic relationships among educational resources using BERT-based contextual embed -
+dings.
+• To leverage IoT-aware, device-mediated learner interaction signals for adaptive and sequential decision-mak-
+ing.
+• To enhance learner engagement and satisfaction through continuous policy refinement using reinforcement 
+learning.
+• To incorporate privacy-awareness and interpretability considerations into the recommendation process.
+To further improve robustness under sparse and high-dimensional interaction data, the framework integrates a 
+Mahalanobis distance–based similarity module that explicitly models feature correlations and mitigates sparsity 
+in user–course interactions.
+The main contributions of this study can be summarized as follows:
+• A cohesive deep reinforcement learning framework that integrates BERT-based semantic representation with 
+IoT-aware interaction modeling and Actor–Critic policy learning.
+• A correlation-aware similarity mechanism based on Mahalanobis distance, designed to improve robustness in 
+high-dimensional educational data spaces.
+• A transparent and privacy-conscious personalization strategy tailored for smart and IoT-aware e-learning 
+environments.
+The remainder of this paper is organized as follows. Section   1 reviews related work on deep learning– and 
+reinforcement learning–based recommendation systems. Section  2 presents the proposed system model and 
+training methodology. Section  3 reports the experimental setup, results, and comparative analysis. Section  4 
+concludes the study and outlines potential directions for future research.
+Related works
+Intelligent recommendation in e-learning has gradually evolved from static, rule-based approaches toward adaptive 
+and data-driven frameworks that leverage advances in deep learning, reinforcement learning, and graph-based 
+modeling. Early course recommendation systems primarily relied on Collaborative Filtering (CF) and Content-
+Based Filtering (CBF) techniques, which infer learner preferences from similarities in historical interactions 
+and content metadata20,21. Although widely adopted, these methods face persistent challenges, including data 
+sparsity, cold-start problems, and limited scalability in scenarios with sparse user–item interactions22. Moreover, 
+their static design restricts their ability to adapt to the dynamic and continuously evolving learning preferences 
+typical of large-scale MOOC platforms and IoT-aware digital learning environments23.
+To mitigate these limitations, hybrid and deep neural architectures have been proposed to jointly 
+model semantic and behavioral information. Models such as DeepFM and Neural Collaborative Filtering 
+capture nonlinear relationships between learner attributes and educational resources, leading to improved 
+recommendation accuracy24. However, these approaches are predominantly trained in an offline manner and 
+Scientific Reports |        (2026) 16:10259 2| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+lack mechanisms for sequential policy adaptation based on real-time learner feedback, which constrains their 
+effectiveness in dynamic learning settings25.
+More recently, Deep Reinforcement Learning (DRL) has emerged as a prominent paradigm for adaptive 
+and sequential recommendation. DRL-based recommender systems formulate the recommendation task as a 
+sequential decision-making problem, enabling long-term optimization of learner engagement through repeated 
+interactions26,27. Within this paradigm, Actor–Critic architectures have demonstrated strong performance by 
+jointly learning policy and value functions, thereby improving training stability, convergence behavior, and 
+generalization compared to value-based reinforcement learning methods.
+Graph-based and heterogeneous network models have further enhanced recommendation performance 
+by explicitly modeling complex relationships among learners, courses, and auxiliary entities. A representative 
+example is the heterogeneous graph-enhanced recommendation framework proposed in 28, which integrates 
+graph attention mechanisms with deep reinforcement learning to capture latent relational dependencies among 
+courses, concepts, and instructors. In parallel, Transformer-based models such as BERT4Rec have significantly 
+advanced semantic modeling in recommendation systems by leveraging bidirectional attention to encode 
+contextual dependencies within user–item interaction sequences29. Extending this direction, a knowledge-aware 
+sequence modeling approach introduced in30 combines course knowledge graphs with deep sequence encoders, 
+including BiLSTM, CNN, and MLP components, to jointly represent structural and temporal dependencies, 
+achieving notable improvements in NDCG and Recall on benchmark MOOC datasets.
+Session-based and heterogeneous graph neural networks have also gained prominence for modeling multi-
+relational learner–course interactions. The SR-HetGNN framework presented in 31 constructs heterogeneous 
+graphs composed of learners, sessions, and educational items, effectively capturing both short-term and long-
+term user preferences from interaction logs. Similarly, a clustering-driven deep learning approach proposed in32 
+integrates BiLSTM and MLP architectures to group learners and courses based on behavioral similarity, thereby 
+alleviating sparsity and cold-start issues while maintaining scalability across large educational datasets.
+Hybrid architectures combining deep learning and graph-based reasoning have been explored to further 
+enhance recommendation robustness. In33, a CNN–graph hybrid model employs convolutional neural networks 
+to extract student performance features and graph-based link prediction to uncover latent behavioral relationships. 
+This integration improves recommendation accuracy and mitigates cold-start effects, outperforming several 
+baseline approaches in terms of precision and F1-score.
+Beyond predictive accuracy, recent studies have increasingly emphasized the importance of privacy 
+preservation and interpretability in intelligent e-learning recommendation systems, particularly within IoT-
+aware learning environments where learner interactions are continuously logged across connected platforms. 
+Privacy-preserving paradigms such as Federated Learning and Differential Privacy have been adopted to 
+protect distributed learner data during model training 34. In addition, Explainable Artificial Intelligence (XAI) 
+frameworks have been investigated to enhance transparency, accountability, and user trust in recommendation 
+outcomes35.
+A comparative summary of representative studies is provided in Table 1, highlighting their core methodologies, 
+data characteristics, strengths, and limitations.
+This comparison reveals several open research gaps. First, most existing approaches address personalization 
+from a single perspective semantic, behavioral, or structural without offering an integrated adaptive framework 
+that jointly models all dimensions. Second, although Transformer-based models and reinforcement learning 
+have shown strong performance independently, their combined application for adaptive course recommendation 
+in IoT-aware MOOC environments remains limited. Third, correlation-aware similarity modeling and the 
+integration of privacy and interpretability considerations directly within reinforcement learning–based 
+recommendation pipelines are still underexplored.
+Motivated by these gaps, this study proposes a hybrid BERT–Actor–Critic framework augmented with a 
+Mahalanobis distance–based similarity mechanism. By unifying semantic representation, sequential decision-
+making, and correlation-aware interaction modeling within a scalable and privacy-conscious architecture, the 
+proposed approach directly addresses the limitations identified in prior work and establishes the foundation for 
+the system model described in the subsequent section.
+Study Core method Data type Strengths Limitations
+28 Heterogeneous Graph + DRL IoT-aware MOOC interaction logs Models latent relational dependencies; 
+improves personalization Limited semantic content modeling
+30 Knowledge-Aware Deep Learning Knowledge graph + interaction 
+sequences
+Captures structural and temporal 
+dependencies
+Computationally intensive; limited 
+adaptivity
+31 Session-Based Heterogeneous GNN User–session interaction logs Learns short- and long-term preferences Ignores rich semantic course content
+32 Clustering-Driven Deep Learning Behavioral interaction data Reduces sparsity; scalable to large datasets Weak contextual and semantic awareness
+33 CNN–Graph Hybrid Performance features + graph relations Enhances robustness; mitigates cold-start Requires extensive labeled data
+34 Federated Learning Distributed IoT-aware interaction logs Preserves privacy; decentralized training Slower convergence; communication 
+overhead
+35 Explainable AI (XAI) IoT-aware behavioral logs Improves transparency and trust Lacks adaptive policy learning
+Table 1. Comparative summary of key related works in e-learning recommendation.
+ 
+Scientific Reports |        (2026) 16:10259 3| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+System model
+The proposed system integrates multiple components to deliver customized course recommendations, as seen 
+in Figs.  1 and 2. Figure  1 illustrates the data processing pipeline, which includes dataset input, BERT feature 
+extraction, Mahalanobis Distance computation, and state representation. Figure  2 illustrates the suggestion 
+generation process, encompassing the Actor-Critic model, reward function, and policy optimization through 
+Fig. 2. Actor-critic and PPO optimization for DRL-based MOOC recommendation.
+ 
+Fig. 1. Feature Extraction and State Representation Pipeline for DRL-based MOOC Recommender.
+ 
+Scientific Reports |        (2026) 16:10259 4| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Proximal Policy Optimization (PPO). The design employs IoT-generated data for dynamic adaptation, ensuring 
+precision in recommendations.
+Datasets
+The proposed approach utilizes three comprehensive datasets MOOCCube 36, edX, and NTHU MOOCs 37 to 
+train and assess the model. These datasets offer varied course and user information, encompassing textual 
+components (e.g., course titles, descriptions, tags) for semantic analysis and behavioral characteristics (e.g., 
+interaction histories, ratings, engagement metrics) for user profiling. The datasets allow the system to identify 
+intricate patterns, enhancing feature extraction and state representation for tailored recommendations. Table 2 
+delineates the principal attributes of these datasets.
+MOOCCube dataset
+The MOOCCube dataset, obtained from XuetangX, includes 706 courses, 55,203 users, and 1,200,000 
+interactions. The dataset comprises course metadata, including titles, descriptions, and tags, optimized for 
+BERT-based semantic feature extraction, with user interactions such as ratings (1–5), clicks, and video views. 
+These variables facilitate behavioral modeling and clustering by Mahalanobis Distance, hence improving 
+recommendation relevance for various learner profiles.
+edX dataset
+The edX dataset, sourced from MITx and HarvardX courses, comprises 450 courses and 38,500 users, totaling 
+850,000 interactions. It offers demographic data (e.g., age, gender, educational qualifications) and engagement 
+metrics (e.g., ratings, difficulty levels: beginner, intermediate, advanced). These features provide thorough user 
+profiling and enhance scalability and customisation, rendering the dataset essential to the recommendation 
+framework.
+NTHU MOOCs dataset
+The NTHU MOOCs dataset, supplied by National Tsing Hua University, comprises 320 courses, 12,800 users, 
+and 420,000 interactions. It encompasses behavioral attributes including interaction durations (0–20 h, mean: 
+3.2, standard deviation: 1.5), course classifications (e.g., Computer Science, Humanities), and user actions. This 
+dataset augments MOOCCube and edX by improving the system’s capacity to simulate changing user preferences 
+in IoT-enabled contexts.
+Dataset integration and rationale
+The amalgamation of the three datasets MOOCCube, edX, and NTHU MOOCs guarantees that the proposed 
+approach generalizes proficiently across diverse e-learning ecosystems. MOOCCube offers extensive behavioral 
+and textual diversity, edX delivers organized and demographically enhanced interactions, and NTHU MOOCs 
+furnish contextual behavioral indicators that signify student involvement intensity. The integration of these 
+datasets enhances cross-domain resilience and reduces dataset-specific biases, allowing the reinforcement 
+learning model to adjust to diverse educational contexts and learner demographics.
+Preprocessing
+The preprocessing phase is an essential initial step in the proposed DRL-based recommender system, aimed at 
+improving the quality and consistency of input data from the MOOCCube, edX, and NTHU MOOCs datasets. 
+This phase converts unrefined input into a structured format appropriate for further feature extraction and model 
+training, tackling challenges such as absent values, scale inconsistencies, and textual noise. The pretreatment 
+pipeline consists of three fundamental sub-processes: data cleaning, normalization, and text preparation, each 
+utilizing stringent mathematical formulations to guarantee robustness and compatibility with the BERT and 
+Mahalanobis Distance modules.
+Data cleaning
+Data cleansing reduces the effects of incomplete or erroneous items in datasets. Missing values, a prevalent issue 
+in extensive educational datasets, are imputed using the mean of the corresponding attribute from non-missing 
+observations. This methodology is articulated as:
+ 
+xi,j =
+{ xi,j if xi,j is not missing,
+x′
+j if xi,j is missing,  (1)
+where xi,j denotes the value of feature jfor instance i, and 
+′
+xj represents the mean of feature j, computed as:
+Dataset Number of courses Number of users Number of interactions Key features
+MOOCCube 706 55,203 1,200,000 Ratings, clicks, textual metadata
+edX 450 38,500 850,000 Ratings, difficulty level, textual metadata
+NTHU MOOCs 320 12,800 420,000 Interaction time, tags, user behaviors
+Table 2. Summary of Dataset Characteristics.
+ 
+Scientific Reports |        (2026) 16:10259 5| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+ 
+′
+x
+j
+= 1
+n
+n∑
+i=1
+xi,j  (2)
+where n represents the count of non-missing values. This approach maintains the statistical characteristics of the 
+data while guaranteeing completeness, so enabling dependable further analysis.
+Normalization
+Normalization mitigates the variability in feature scales, which is especially pertinent for user interaction metrics 
+like quiz scores and engagement durations. The Min-Max normalizing method is utilized to rescale features to a 
+standardized range of [0, 1], as described by:
+ 
+x′
+i,j = xi,j − xj,min
+xj,max − xj,min
+ (3)
+where xi,j  is the original value, x′
+i,j  is the normalized value, and xj,min and xj,max are the minimum and 
+maximum values of feature j across the dataset, respectively. This change improves the stability of Mahalanobis 
+Distance calculations and the convergence of the Actor-Critic model by reducing scale-related biases.
+Text preparation
+Text preparation organizes course-related textual data (e.g., titles, descriptions, tags) for semantic feature 
+extraction by the BERT model. This procedure encompasses noise elimination and token truncation to conform 
+to BERT’s input specifications. The calculation of valid tokens is as follows:
+ 
+Ntokens =
+L∑
+i=1
+1valid (ti) (4)
+Let L denote the length of the text, t_i represent the i-th token, and 1valid (ti) be an indicator function that 
+equals 1 if ti is a legitimate token (e.g., post removal of special characters) and 0 otherwise. T o adhere to BERT’ s 
+maximum sequence length, truncation is implemented as follows:
+ Ttruncated = {ti | i ≤ max_length}, (5)
+with max_length = 128. This guarantees efficient processing of the input text while maintaining crucial 
+semantic content.
+Data synchronization and feature alignment
+Due to the datasets originating from several platforms, temporal and structural discrepancies may occur during 
+integration. Timestamps are transformed to a uniform UTC format, and course identities are normalized 
+using hash-based mapping. Feature alignment is accomplished through the application of schema unification 
+techniques that provide uniform naming conventions and data types across all datasets. This preprocessing step 
+ensures that input features maintain semantic consistency for both the BERT encoder and the reinforcement 
+learning components.
+BERT feature extraction
+The BERT module extracts semantic features from course materials through three subprocesses, as illustrated in 
+Fig. 1: tokenization, which segments texts into a maximum of 128 tokens; the embedding layer, where the bert-
+base-uncased model produces contextual embeddings; and CLS token extraction, where the 768-dimensional 
+CLS token embedding represents each course. The embeddings are relayed to the State Representation and 
+Mahalanobis Distance modules to enhance content-based recommendations. Algorithm 1 provides pseudocode 
+for feature extraction utilizing BERT to clarify the procedure.
+IoT-aware interaction feature
+In the proposed framework, IoT-aware interaction features are derived from device-mediated and platform-
+level interaction logs collected from smart learning platforms. The public datasets employed in this study 
+MOOCCube, edX, and NTHU MOOCs primarily contain standard web and mobile application logs that 
+capture learners’ interactions within digital learning environments. These logs include session duration, access 
+frequency, temporal engagement patterns, click behavior, and other context-aware usage indicators.
+Although the utilized datasets are based on platform-level interaction traces, such data are widely regarded 
+as practical and realistic representations of IoT-aware e-learning environments. In large-scale online education 
+systems, learning activities are mediated through interconnected devices and digital infrastructures, where 
+interaction logs serve as the primary source of behavioral and contextual information.
+Accordingly, all IoT-aware features in this work are explicitly defined as device-mediated learner interaction 
+signals generated through smart educational platforms. These features are normalized using Min–Max scaling 
+and aggregated into a compact learner-context representation. The resulting representation is subsequently 
+integrated with BERT-based semantic embeddings to form the final state vector used by the reinforcement 
+learning agent. This formulation ensures conceptual consistency between the adopted IoT-aware definition, the 
+employed data sources, and the proposed learning framework.
+Scientific Reports |        (2026) 16:10259 6| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Algorithm 1:. BERT feature extraction pseudocode
+State representation
+The State Representation module, illustrated in Fig.  1, produces a 778-dimensional vector for the Actor-Critic 
+model. This vector integrates user features (10-dimensional) that include interaction histories and scores 
+from MOOCCube, edX, and NTHU MOOCs, course embeddings (768-dimensional) serving as semantic 
+representations from BERT, and clustering features obtained through Mahalanobis Distance clustering. 
+Collectively, these components encapsulate user preferences and course interrelations, thereby enabling precise 
+suggestion generation.
+Action space definition
+The action space of the proposed framework comprises a discrete collection of available courses inside the 
+dataset. Each action pertains to the suggestion of an individual course, whereas top-N recommendation lists 
+are produced by choosing the actions with the highest probabilities from the output distribution of the Actor 
+Network. This architecture streamlines policy learning and guarantees the interpretability of recommendations, 
+while the implementation of probability-based ranking provides adaptability in customizing the quantity of 
+suggestions according to user interaction frequency or session environment.
+Actor-critic model
+The Actor Network generates a probability distribution over the available courses, functioning as the policy 
+network that determines the likelihood of proposing each course depending on the current state, with its 
+architecture specified as follows: The input layer receives a 778-dimensional state vector, derived from the State 
+Representation module, which incorporates user-specific features, course embeddings, and clustering data.
+The hidden layers consist of two fully connected layers with 256 and 128 neurons, respectively, utilizing the 
+Rectified Linear Unit (ReLU) activation function to introduce non-linearity and alleviate the vanishing gradient 
+issue, thereby improving the network’s ability to model intricate patterns.
+The softmax output generates a probability distribution across the course set, with each value indicating the 
+likelihood of selecting a particular course, thereby aiding in the ranking of recommendations.
+The Actor Network employs similarity scores derived from the Mahalanobis Distance module to assess 
+the relational proximity between courses and user profiles, thereby enhancing its output. This facilitates the 
+generation of top-5 or top-10 course recommendations, as illustrated in Fig. 2, ensuring that the suggestions are 
+relevant and diverse, particularly in addressing cold-start scenarios and sparse data challenges.
+Critic network
+The Critic assesses the value function V(s), which denotes the anticipated cumulative reward linked to a specific 
+states, functioning as an essential evaluative element that directs the Actor Network’s policy optimization within 
+the reinforcement learning paradigm, with its architecture delineated as follows: The input layer receives a 
+778-dimensional state vector, identical to that used by the Actor Network, derived from the State Representation 
+module to encapsulate user-specific features, course embeddings, and clustering data.
+The hidden layers comprise two fully connected layers containing 256 and 128 neurons, respectively, utilizing 
+the Rectified Linear Unit (ReLU) activation function to introduce non-linearity and mitigate the vanishing 
+gradient problem, thereby improving the network’s capacity to approximate complex value functions. The value 
+output generates a scalar state value V(s), serving as a baseline for evaluating the quality of the current state and 
+guiding subsequent training modifications.
+Correlation-aware similarity modeling using mahalanobis distance
+To model similarity relationships among learners and courses in a high-dimensional latent feature space, a 
+Mahalanobis distance–based similarity module is employed. This module, illustrated in Fig. 1, plays a dual role 
+by providing correlation-aware similarity scores and by supporting clustering-based feature augmentation for 
+the proposed DRL-based recommendation framework.
+Scientific Reports |        (2026) 16:10259 7| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Unlike conventional similarity measures such as Euclidean distance or cosine similarity, Mahalanobis 
+distance explicitly incorporates inter-feature correlations through the inverse covariance matrix. This property 
+is particularly important in the proposed framework, where the state representation combines contextualized 
+semantic embeddings derived from BERT with device-mediated learner interaction features. These heterogeneous 
+components exhibit non-uniform variance and cross-dimensional correlations due to semantic dependencies in 
+textual representations and co-occurring behavioral patterns in interaction logs.
+The Mahalanobis distance between two feature vectors x and y is computed as:
+ DM (x, y)=
+√
+(x − y)T S−1(x − y) (6)
+where (S) denotes the covariance matrix capturing interdependencies among feature dimensions. Rather than 
+assuming any strict distributional form, Mahalanobis distance is adopted as a covariance-aware metric that 
+adaptively scales feature dimensions and mitigates anisotropy and redundancy in the latent representation space.
+The resulting distance scores serve two complementary purposes. First, they are incorporated as similarity 
+cues within the Actor Network to refine course recommendation probabilities by accounting for correlated 
+feature structures. Second, they are used to cluster learners or courses based on relational proximity, producing 
+clustering features that augment the 778-dimensional state vector. This mechanism is particularly effective 
+in alleviating cold-start and sparsity issues by exploiting relational patterns embedded in high-dimensional 
+interaction data.
+T o ensure numerical stability in high-dimensional settings, the covariance matrix is estimated from 
+normalized feature representations and regularized prior to inversion. Algorithm 2 outlines the procedure used 
+to compute Mahalanobis distance and generate clustering features for state enhancement.
+Algorithm 2:. Mahalanobis distance pseudocode.
+Reward function
+The reward function, illustrated in Fig.  2, acts as a quantitative metric to evaluate user interactions within the 
+proposed DRL-based recommender system, technically described as:
+ R = w1 · Completion + w2 · Quiz + w3 · Engagement (7)
+The weights are designated as w1=0.4, w2=0.4, and w3=0.2, indicating the relative significance of each 
+component in formulating the reinforcement learning target. The Completion Rate quantifies the percentage of 
+a course finished by the user, indicating overall engagement and satisfaction (weight w1=0.4); the Quiz Score 
+assesses the user’ s performance in evaluations, revealing insights into comprehension and learning outcomes 
+(weight w2=0.4); and the Engagement Time measures the duration devoted to course materials, serving as a 
+proxy for active participation and interest (weight w3=0.2).
+This weighted combination directs the Proximal Policy Optimization (PPO) method in enhancing the Actor-
+Critic model’ s policy, ensuring that suggestions correspond with user preferences and learning advancement 
+over time.
+A sensitivity analysis was performed to optimize the configuration of the reward function by varying the 
+weight w1 from 0.3 to 0.5, while proportionally adjusting w2 and w3 to ensure their sum equals 1.0. This analysis 
+revealed that the current configuration ( w1 =0 .4,w 2 =0 .4,w 3 =0 .2) yields a balanced performance across 
+completion, assessment, and engagement metrics. This ideal configuration was confirmed using grid search 
+experiments that thoroughly examined the weight space to enhance suggestion relevance and user satisfaction, 
+as demonstrated by increased policy stability and convergence throughout training.
+Scientific Reports |        (2026) 16:10259 8| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Training with PPO
+The Proximal Policy Optimization (PPO) module, illustrated in Fig.  2, trains the Actor-Critic model via a 
+systematic and iterative approach that improves the stability and efficiency of the reinforcement learning 
+framework, thereby optimizing the performance of course recommendations within the proposed system. This 
+approach has three essential steps: advantage computation, policy update, and value update, each facilitating the 
+model’s effective adaptability to user interactions.
+The advantage computation measures the comparative benefit of an activity against the average, expressed as:
+ At = Rt + γV (st+1) − V (st) , (8)
+where Rt signifies the immediate reward at time step t, V (st+1) and V (st) represent the value functions 
+assessed by the Critic for the subsequent and current states, respectively, and γ =0 .99 functions as the discount 
+factor that reconciles the impact of immediate and future rewards, thus stabilizing the learning trajectory. The 
+policy update utilizes a truncated objective function to avert excessive policy modifications, articulated as:
+ LCLIP (θ )= E[min(rt (θ ) At, clip (rt( θ ), 1−?, 1+?)At )] , (9)
+where r_t(θ) is the probability ratio of the new policy relative to the old policy, At represents the advantage, and 
+ε = 0.2 is the clipping value that limits the update size, so providing a conservative yet effective policy refinement 
+that reduces the chance of performance deterioration. The value update reduces the Mean Squared Error (MSE) 
+loss for the Critic, aligning the projected state value V(s) with the actual returns, hence improving the accuracy 
+of the value function across future rounds. PPO’ s design facilitates stable and efficient learning by harmonizing 
+exploration and exploitation, hence enhancing recommendation performance through superior convergence 
+rates and flexibility to the evolving preferences of users in the MOOCCube, edX, and NTHU MOOCs datasets.
+Model convergence and evaluation metrics
+The convergence of the Actor–Critic model is assessed during training by essential performance indicators, 
+including cumulative reward, average policy loss, and critic value inaccuracy. The learning process is deemed 
+stable when these measurements attain steady-state oscillations throughout successive epochs.
+To assess the recommender’s efficacy, standard metrics Precision@N, Recall@N, F1-Score, and Mean 
+Reciprocal Rank (MRR) are calculated across all datasets. These metrics offer a quantitative assessment of 
+recommendation precision and ranking efficacy. Furthermore, training stability is evaluated via variance analysis 
+of episodic returns, validating constant policy enhancement across iterations.
+Privacy and ethical considerations
+Given that the system handles sensitive behavioral and IoT-derived learner data, safeguarding privacy is an 
+essential design need.
+User identities undergo anonymization in the preprocessing phase, and no personally identifiable information 
+is retained within the reinforcement learning pipeline. The model’s architecture is compatible with federated 
+learning extensions, facilitating decentralized training across many institutional nodes. Moreover, transparency 
+is improved by explainable decision visualization, wherein attention weights and incentive contributions are 
+comprehensible to both instructors and learners, so ensuring ethical adherence and cultivating confidence.
+Experimental results and analysis
+Experimental setup
+This section delineates the experimental setup utilized to assess the proposed Deep Reinforcement Learning-
+based Personalized Course Recommendation architecture. All studies were performed on a workstation using 
+an NVIDIA RTX 3090 GPU (24 GB), an Intel Core i9 processor, and 64 GB of RAM. The models were executed 
+utilizing PyTorch 2.1 and the HuggingFace Transformers library.
+The learning rate was established at 1e − 4, the batch size at 128, and the discount factor γ at 0.99. Proximal 
+Policy Optimization (PPO) was utilized with ε = 0.2 for clipping and a learning rate scheduler featuring cosine 
+annealing. Each model underwent training for 100 epochs, with early stopping implemented when the validation 
+loss stabilized for 10 successive epochs.
+The three datasets (MOOCCube, edX, and NTHU MOOCs) were randomly partitioned into training, 
+validation, and test groups at a 70:15:15 ratio. Stratified sampling was utilized to maintain the distribution of 
+essential characteristics, including course complexity and user interaction frequency. The validation subset was 
+utilized for hyperparameter optimization and early termination, whereas the test subset was exclusively allocated 
+for final assessment. This arrangement guaranteed equitable performance evaluation among all baseline models.
+The BERT module utilized the bert-base-uncased pre-trained model from HuggingFace Transformers. In the 
+fine-tuning process, only the final four transformer layers were unfrozen, while the preceding layers remained 
+fixed to mitigate overfitting due to the limited textual data available for each course. The model had a hidden size 
+of 768, a maximum sequence length of 128 tokens, a batch size of 32, and a learning rate of 2 × 10−5 utilizing a 
+cosine annealing schedule.
+The AdamW optimizer was employed with a weight decay of 0.01 and a dropout rate of 0.1. The [CLS] 
+token embedding from the final transformer layer was utilized as the semantic representation for each course 
+description, with tokenization conducted using WordPiece, incorporating lowercasing and truncation beyond 
+128 tokens.
+Scientific Reports |        (2026) 16:10259 9| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Baseline models
+To thoroughly assess the efficacy of the proposed BERT–Actor–Critic–PPO architecture, four cutting-edge 
+baseline models were chosen, exemplifying various paradigms in graph-based, clustering-driven, and hybrid 
+deep-learning recommendation methodologies.
+• SR-HetGNN: A graph-based approach that creates a heterogeneous network comprising learners, sessions, 
+and courses to encapsulate both local and global contextual dependencies, dynamically modeling user prefer-
+ences via node and relation-type embeddings.
+• HGCR: A heterogeneous graph recommender that combines deep graph convolutions with attention mech-
+anisms to discern high-order links among learners, knowledge concepts, and courses, thus improving inter-
+pretability and personalization.
+• Clustering-driven deep learning: A clustering-focused model using BiLSTM and MLP networks to catego-
+rize analogous people and courses, efficiently addressing data sparsity and cold-start issues while attaining 
+roughly 96% accuracy in course recommendations.
+• CNN–graph hybrid : A hybrid architecture that combines Convolutional Neural Networks (CNNs) with 
+graph analysis to forecast new user-course interactions through link prediction, demonstrating robust empir-
+ical performance with a Precision of 0.83 on extensive e-learning datasets.
+Exploratory data analysis
+This section provides a collection of statistical and visual analysis aimed at uncovering significant structural and 
+behavioral themes within the datasets utilized for model training and evaluation MOOCCube, edX, and NTHU 
+MOOCs.
+This analysis serves two purposes: (1) to investigate essential aspects including rating distributions, 
+engagement durations, and course difficulty levels, and (2) to discern patterns that may affect the behavior and 
+convergence of the reinforcement learning model.
+Distribution of course ratings
+Figure 3 depicts the distribution of course ratings for MOOCCube and edX through histograms, with the x-axis 
+denoting rating values (1–5) and the y-axis representing the quantity of courses.
+MOOCCube: Mean = 3.5, SD = 0.8, indicating a moderately distributed distribution that reflects diverse 
+learner perceptions and course variability.
+edX: Mean = 4.0, SD = 0.6, indicating elevated consistency and learner satisfaction.
+A two-sample t-test comparing the mean ratings of the two datasets produced a p-value of less than 0.01, 
+indicating a statistically significant difference. This gap presumably arises from superior teaching quality and 
+more systematic pedagogical design in edX courses.
+From a modeling standpoint, this suggests that semantic embeddings (utilizing BERT) are instrumental in 
+discerning subtle textual distinctions between high- and low-rated courses, hence enhancing policy accuracy in 
+the Actor–Critic module.
+User interaction time (NTHU MOOCs)
+Figure 4 illustrates the lengths of user interaction in the NTHU MOOCs dataset, quantified in hours.
+Fig. 3. Distribution of course ratings for MOOCCube and edX.
+ 
+Scientific Reports |        (2026) 16:10259 10| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Peak activity transpires between 2 and 4 h (mean = 3.2 h, SD = 1.5), with less than 10% of users surpassing 6 h.
+This pattern suggests relatively short course structures and possible early-stage disengagement.
+A Pearson correlation coefficient of 0.45 between interaction duration and evaluations signifies a moderate 
+positive association extended involvement is generally associated with increased pleasure.
+These findings suggest that temporal engagement measurements are significant behavioral indicators that 
+can enhance the state representation in reinforcement learning.
+Integrating interaction duration into the policy optimization process facilitates adaptive recommendations 
+that incentivize both prolonged engagement and course completion.
+Course difficulty levels
+Figure 5 juxtaposes the proportions of course difficulty levels Beginner, Intermediate, and Advanced among the 
+three datasets.
+Advanced courses demonstrate lower average ratings (mean = 3.2) compared to starter courses (mean = 4.0), 
+presumably due to heightened complexity and attrition rates.
+An ANOV A test (p < 0.05) indicates significant disparities among difficulty categories.
+This data advocates for the incorporation of difficulty level as an input feature in the state representation 
+vector, allowing the Actor–Critic model to tailor recommendations according to user proficiency and course 
+complexity.
+Anomalies and unexpected patterns
+Two significant anomalies were detected during data exploration:
+• Anomalies: Approximately 2% of MOOCCube courses got perfect ratings (5.0) despite minimal involvement 
+levels. Manual inspection indicated that these were specialized computer science or language courses with 
+limited yet extremely dedicated user communities. Outliers were eliminated during preprocessing to avert 
+model bias.
+Fig. 5. Distribution of course difficulty levels.
+ 
+Fig. 4. Distribution of user interaction times for NTHU MOOCs.
+ 
+Scientific Reports |        (2026) 16:10259 11| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+• Unexpected patterns: Some introductory courses in NTHU MOOCs exhibited engagement durations be -
+yond 10 h, likely attributable to interactive learning designs, gamified content, or elevated learner motivation.
+Summary of exploratory insights
+The exploratory study uncovers three essential insights:
+• Behavioral diversity : Students demonstrate diverse engagement patterns, underscoring the necessity for 
+adaptive, behavior-sensitive policy learning.
+• Semantic relevance: The textual content of the course is closely linked to perceived quality, hence enhancing 
+the efficacy of BERT-based feature extraction.
+• Difficulty-driven personalization: The disparity in difficulty and satisfaction highlights the significance of 
+multi-faceted state representation in reinforcement learning.
+These discoveries directly influence the architecture of the BERT–Actor–Critic–PPO model, improving both 
+interpretability and generalization inside e-learning environments.
+Quantitative results
+Evaluation metrics
+To thoroughly evaluate the efficacy of the proposed BERT–Actor–Critic–PPO framework, four conventional 
+assessment metrics were utilized: Precision@10, Recall@10, F1-score, and Mean Reciprocal Rank (MRR).
+Precision@10 quantifies the ratio of pertinent courses within the top ten suggestions for each learner, serving 
+as a metric for recommendation accuracy. Recall@10 measures the proportion of pertinent courses accurately 
+retrieved within the top ten recommendations, hence indicating the system’s capacity to address a wider array 
+of learner preferences.
+The F1-score denotes the harmonic mean of precision and recall, providing a balanced statistic that mitigates 
+the influence of extreme values in either measure and acts as a more steady indicator of model dependability.
+The Mean Reciprocal Rank (MRR) assesses ranking efficacy by calculating the average of the inverse positions 
+of the first accurately recommended item for all learners. An elevated MRR indicates that pertinent courses are 
+situated nearer to the apex of the suggestion list, enhancing user pleasure and engagement.
+Collectively, these four metrics offer a thorough evaluation framework for assessing both the ranking quality 
+and retrieval efficacy of the proposed reinforcement learning model, guaranteeing that enhancements encompass 
+not only accuracy but also recommendation relevance, diversity, and robustness.
+Comparative performance
+Table 3 delineates the comparative assessment of the proposed BERT–Actor–Critic–PPO framework against 
+four notable baselines: SR-HetGNN, HGCR, CNN–Graph Hybrid, and Clustering-Driven Deep Learning.
+All models were trained under uniform experimental circumstances to guarantee equitable comparison and 
+assessed using same metrics across all datasets.
+The findings unequivocally indicate that the suggested BERT–Actor–Critic–PPO model attains superior 
+performance across all assessment metrics. Relative to the most robust baseline, SR-HetGNN, the proposed 
+framework demonstrates enhancements of around 2.9% in Precision@10, 3.5% in Recall@10, and 3.6% in F1-
+score, signifying a substantial improvement in both ranking accuracy and retrieval quality.
+The model’s exceptional performance arises from two key advantages: (1) semantic contextualization 
+through BERT embeddings, which elucidates intricate relationships between course descriptions and learner 
+preferences, and (2) adaptive policy learning via Proximal Policy Optimization (PPO), which dynamically 
+modifies recommendations based on interaction feedback.While SR-HetGNN and HGCR demonstrate strong 
+graph reasoning capabilities, their static relational modeling limits responsiveness to user behavior.
+The CNN–Graph Hybrid model provides robust structural learning but lacks in semantic coherence and 
+sequential adaptability.
+Ultimately, the Clustering-Driven Deep Learning approach, while proficient in addressing sparsity and cold-
+start issues, has difficulties in generalizing across varied content contexts.
+The results demonstrate the consistent superiority of the proposed BERT–Actor–Critic–PPO framework 
+across all benchmarks, affirming that reinforcement-driven, semantically enriched modeling achieves optimal 
+precision, recall, and ranking performance in adaptive e-learning environments.
+Model Precision@10 Recall@10 F1-score MRR
+Proposed BERT–Actor–Critic–PPO 0.842 0.791 0.815 0.771
+SR-HetGNN 0.818 0.764 0.787 0.747
+HGCR 0.805 0.752 0.775 0.739
+CNN–Graph Hybrid 0.793 0.741 0.765 0.731
+Clustering-Driven Deep Learning 0.778 0.728 0.752 0.719
+Table 3. Overall performance comparison.
+ 
+Scientific Reports |        (2026) 16:10259 12| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Dataset-wise analysis
+An examination of the datasets from MOOCCube, edX, and NTHU was conducted to assess the flexibility 
+and generalization efficacy of the proposed BERT–Actor–Critic–PPO framework in various learning settings. 
+Each dataset exhibits distinct attributes regarding learner variety, interaction sparsity, and course granularity, 
+facilitating a thorough evaluation of model robustness.
+Figure 6 demonstrates that the suggested model attains superior overall performance on the MOOCCube 
+dataset, with a Precision@10 of 0.846, Recall@10 of 0.792, and MRR of 0.774.
+These results exceed SR-HetGNN by around 3%, validating the benefit of integrating BERT-based semantic 
+embeddings for modeling textual features and learner intent. Graph-based methodologies like SR-HetGNN and 
+Fig. 7. performance on the edx.
+ 
+Fig. 6. performance on the MOOCCube.
+ 
+Scientific Reports |        (2026) 16:10259 13| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+HGCR, however proficient in capturing relational frameworks, fail to adequately convey semantic subtleties and 
+contextual interdependencies, leading to diminished personalization accuracy.
+In the edX dataset, illustrated in Fig.  7, the proposed model exhibits robust performance with 
+Precision@10 = 0.839, Recall@10 = 0.788, and F1-score = 0.812. The enhancement in recall (about 3.8% more 
+than SR-HetGNN) indicates that the PPO-driven policy optimization successfully encapsulates learners’ 
+sequential behaviors and engagement patterns.
+In contrast to deterministic models such as HGCR or CNN–Graph Hybrid, the reinforcement-based 
+technique demonstrates accelerated convergence and enhanced stability in learning curves, especially when 
+managing varied student demographics and well-organized course hierarchies.
+The constancy of performance is additionally corroborated by the NTHU MOOCs dataset, as illustrated in 
+Fig. 8. Notwithstanding its abbreviated interaction sequences and increased data sparsity, the suggested model 
+attains Precision@10 = 0.836 and Recall@10 = 0.780, surpassing SR-HetGNN and HGCR by roughly 2.8 and 
+3.5%, respectively.
+This underscores the efficacy of the Actor–Critic mechanism in optimizing policies with little feedback, 
+while ensuring the optimal use of sparse behavioral data via BERT-based feature representation. The ranking 
+performance (MRR = 0.762) stays consistent, affirming the framework’s robustness against incomplete or noisy 
+learning sequences.
+The results from all three datasets indicate that the suggested BERT–Actor–Critic–PPO model consistently 
+achieves improvements of 2–4% over all baseline models. The approach integrates semantic reasoning with 
+adaptive reinforcement learning to deliver tailored, context-sensitive course recommendations that consistently 
+generalize across diverse e-learning platforms.
+Ablation study
+Experimental setup
+An ablation study was conducted to assess the contribution of each principal component in the proposed BERT–
+Actor–Critic–PPO framework.
+The whole model was evaluated against four simplified forms, each excluding one of the fundamental 
+mechanisms: (1) semantic representation utilizing BERT, (2) the Actor–Critic policy framework, (3) the PPO-
+based policy optimization, and (4) reward normalization through the Mahalanobis distance metric.
+All variations were trained using uniform hyperparameter configurations and dataset partitions to guarantee 
+equitable comparison. The trials were conducted five times, and the mean values of Precision@10, Recall@10, 
+F1-score, and MRR were documented to mitigate the impacts of random initialization. The investigation largely 
+utilized the MOOCCube dataset due to its semantic and behavioral diversity, which effectively underscores the 
+influence of different components on recommendation accuracy.
+Quantitative results of component analysis
+Table 4 presents the quantitative results of the ablation study conducted on the MOOCCube dataset. The 
+results indicate that removing any of the core components of the proposed framework leads to a noticeable 
+Fig. 8. performance on the NTHU MOOCs.
+ 
+Scientific Reports |        (2026) 16:10259 14| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+performance degradation across all evaluation metrics, highlighting the complementary and synergistic roles of 
+these components in improving recommendation quality.
+In the absence of the Actor–Critic architecture or PPO optimization, the model loses its ability to learn 
+adaptive and stable decision policies, resulting in reduced ranking accuracy and performance stability. Similarly, 
+removing reward normalization causes a gradual decline in learning effectiveness, underscoring the importance 
+of proper reward signal design in policy optimization.
+The content-based variant relying solely on BERT, which depends only on semantic representations and 
+excludes reinforcement learning, exhibits the weakest performance across all evaluation metrics. This observation 
+indicates that semantic representation alone is insufficient for modeling the dynamic and sequential nature of 
+learner preferences.
+Sensitivity analysis of reward function weights
+To examine the robustness of the proposed reward formulation, multiple weight configurations were evaluated 
+by varying the relative importance of the completion rate (w1), quiz score (w2), and engagement duration (w3), 
+subject to the constraint w1 + w2 + w3 = 1.
+For each configuration, the network architecture and training hyperparameters were kept unchanged to 
+ensure a fair comparison.
+Table 5 summarizes the impact of different reward weight settings on recommendation performance in terms 
+of Precision@10, Recall@10, F1-score, and MRR.
+Distance metric sensitivity analysis
+In addition to component-level ablation, a sensitivity analysis was conducted to evaluate the impact of different 
+similarity metrics used in the correlation-aware similarity modeling module. Specifically, Mahalanobis distance 
+was compared against two widely adopted alternatives cosine similarity and Euclidean distance while keeping all 
+other components of the proposed framework unchanged.
+This analysis aims to isolate the contribution of covariance-aware similarity modeling in the high-dimensional 
+latent space formed by BERT-based semantic embeddings and device-mediated interaction features. All 
+models were trained and evaluated under identical experimental settings using the MOOCCube dataset, and 
+performance was assessed using Precision@10, Recall@10, F1-score, and Mean Reciprocal Rank (MRR).
+As summarized in Table 6, Mahalanobis distance consistently outperforms cosine similarity and Euclidean 
+distance across all evaluation metrics. Although the observed improvements are moderate, they are stable and 
+consistent, indicating that explicitly accounting for inter-feature correlations leads to more discriminative 
+similarity estimation in heterogeneous and high-dimensional representation spaces.
+Similarity Metric Precision@10 Recall@10 F1-score MRR
+Euclidean distance 0.828 0.776 0.801 0.758
+Cosine similarity 0.834 0.781 0.807 0.764
+Mahalanobis distance 0.846 0.792 0.818 0.774
+Table 6. Comparison of similarity metrics used for learner–course representation in the proposed framework.
+ 
+Reward weights (completion, quiz, engagement) Precision@10 Recall@10 F1-score MRR
+(0.5, 0.3, 0.2) 0.838 0.785 0.810 0.768
+(0.3, 0.5, 0.2) 0.832 0.779 0.804 0.763
+(0.4, 0.4, 0.2) (Proposed) 0.846 0.792 0.818 0.774
+(0.4, 0.3, 0.3) 0.834 0.781 0.807 0.765
+(0.3, 0.4, 0.3) 0.829 0.776 0.802 0.760
+Table 5. Sensitivity analysis of reward weight configurations on the MOOCCube dataset.
+ 
+Model variant Precision@10 Recall@10 F1-score MRR
+BERT-only Content-Based (no RL) 0.766 0.716 0.740 0.709
+w/o BERT embedding 0.809 0.758 0.782 0.744
+w/o actor–critic 0.816 0.763 0.787 0.751
+w/o PPO optimization 0.822 0.770 0.793 0.755
+w/o reward normalization 0.828 0.776 0.800 0.759
+Full proposed model (BERT–actor–critic–PPO) 0.846 0.792 0.818 0.774
+Table 4. Ablation study results on the MOOCCube dataset.
+ 
+Scientific Reports |        (2026) 16:10259 15| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Discussion
+Table 4 unequivocally demonstrates that each component significantly enhances the model’s overall performance.
+The most significant decline transpires upon the removal of BERT embeddings, leading to a decrease of 
+roughly 3.7% in Precision@10 and 4.3% in Recall@10, so affirming the critical importance of semantic feature 
+extraction in elucidating contextual relation between learners and courses. In the absence of BERT, the model 
+fails to represent content effectively, diminishing its capacity to generalize across diverse themes.
+The lack of the Actor–Critic architecture results in a notable performance decrease of approximately 3%, 
+underscoring its importance in the development of dynamic interaction strategies via ongoing feedback. Upon 
+substitution with a more rudimentary DQN-based framework, the system demonstrates diminished convergence 
+speed and reduced stability in reward trajectories.
+The removal of PPO optimization results in a moderate decline (about 2.5%) in both recall and ranking 
+precision, indicating that steady and clipped policy updates are essential for averting reward oscillation and 
+overfitting during training.
+The elimination of reward normalization results in a minor performance decline (about 1.5%), indicating the 
+role of Mahalanobis-based scaling in stabilizing the reward gradient and facilitating equitable learning among 
+users with varying engagement levels.
+These findings confirm that the integration of BERT for semantic encoding, Actor–Critic for adaptive policy 
+learning, PPO for stability, and reward normalization for equilibrium control produces the most precise, stable, 
+and generalizable course recommendation framework. The collaboration among these elements allows the 
+proposed approach to preserve interpretability while attaining consistent performance improvements across all 
+evaluation measures.
+Computational efficiency analysis
+Training time comparison
+A comparative analysis of training time was undertaken to assess the computational efficiency of the proposed 
+BERT–Actor–Critic–PPO model against baseline approaches.
+All studies were conducted using an identical hardware configuration, comprising an NVIDIA RTX 4090 
+GPU with 24 GB of memory, 64 GB of RAM, and an Intel Core i9-13900 K CPU.
+The suggested model exhibits competitive training efficiency, as summarized in Table  7, despite its more 
+intricate architecture.
+The suggested model has a little extended training duration (about 8–10% longer than SR-HetGNN), although 
+this additional expenditure is compensated by a significant enhancement in recommendation accuracy (2–4% 
+improvements across all metrics).
+The slight rise in computing time is mostly due to BERT embedding extraction and policy optimization 
+updates, which are one-time expenses distributed throughout the whole learning process.
+Convergence stability
+The mean reward values were assessed throughout training epochs for all models to evaluate learning stability.
+Figure 9 illustrates that the BERT–Actor–Critic–PPO framework exhibits more consistent convergence 
+behavior and reduced reward variation in comparison to all baseline models.
+The oscillations are modest and similar to those of other models; however, the suggested model stabilizes 
+earlier around the 35th epoch whereas SR-HetGNN and HGCR necessitate roughly 50–60 epochs to reach 
+comparable reward levels.
+The Proximal Policy Optimization (PPO) technique employs clipped policy updates and adaptive learning 
+rates, thereby averting divergence and overfitting in policy learning.
+The stability is evident in Fig.  9, where the curve of the proposed model converges marginally above the 
+others with less volatility, so affirming a more equitable trade-off between exploration and exploitation.
+The convergence trajectories in Fig.  9 confirm that the reinforcement-driven learning technique facilitates 
+more rapid, consistent, and efficient optimization than traditional graph-based and deep-learning benchmarks.
+Resource utilization
+Alongside time efficiency, the memory footprint and parameter scaling were evaluated to determine 
+computational overhead.
+The proposed model comprises roughly 38 million parameters, in contrast to 41 million in SR-HetGNN and 
+43 million in HGCR, attributable to the implementation of parameter sharing inside the Actor–Critic network 
+and the utilization of compact embedding layers for BERT fine-tuning.
+Model MOOCCube edX NTHU MOOCs
+Clustering-driven DL 42.6 39.3 31.8
+CNN–graph hybrid 48.7 45.5 36.4
+SR-HetGNN 54.2 51.9 42.1
+HGCR 57.3 55.0 43.8
+Proposed BERT–actor–critic–PPO 59.8 56.6 45.2
+Table 7. Average training time per epoch (in seconds).
+ 
+Scientific Reports |        (2026) 16:10259 16| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+During training, GPU memory usage averaged 18.9 GB, representing an only 6% increase over the CNNGraph 
+Hybrid baseline, indicating that the amalgamation of reinforcement learning and semantic embedding may be 
+accomplished without substantial resource escalation.
+Moreover, the average inference time per recommendation session was 0.43  s, rendering the model 
+appropriate for real-time or near-real-time recommendation applications in extensive online learning systems.
+This demonstrates that, despite its conceptual intricacy, the suggested framework attains an exceptional 
+balance between computational efficiency and predictive performance.
+The computational analysis verifies that the suggested BERT–Actor–Critic–PPO model sustains a balanced 
+profile of accuracy and efficiency.
+It converges more rapidly, demonstrates less variance in training stability, and functions within acceptable 
+computational costs compared to current baselines.
+The results collectively confirm that the architectural improvements specifically, semantic representation 
+learning, adaptive policy optimization, and reward normalization enhance a system that is both more accurate 
+and computationally sustainable for real-world educational platforms.
+Discussion and implications
+The results from the previous experiments collectively illustrate the efficacy and resilience of the proposed 
+BERT–Actor–Critic–PPO framework for tailored course recommendations in online learning settings.
+The amalgamation of semantic representation learning via BERT with reinforcement learning techniques 
+through Actor–Critic and PPO optimization has yielded consistent enhancements in recommendation accuracy 
+and stability across many datasets.
+The findings demonstrate that the integration of deep contextual embeddings with adaptive decision rules can 
+proficiently tackle persistent obstacles, including data sparsity, cold-start problems, and behavioral ambiguity in 
+learner-course interactions.
+The theoretical superiority of the proposed model substantiates the significance of integrating content-aware 
+and behavior-aware features within a cohesive architecture.
+The use of semantic embeddings allows the model to discern nuanced links between course material and 
+learner intent, while the reinforcement-based policy framework guarantees ongoing optimization informed by 
+feedback signals.
+This synergy connects static recommendation systems with dynamic, feedback-oriented decision-making 
+frameworks, providing a more accurate representation of learner interactions with educational content across 
+time.
+The ramifications of these findings are especially pertinent for extensive MOOC platforms and e-learning 
+environments.
+The suggested model’s capacity to provide precise recommendations with minimal computing expense 
+suggests its practical integration into real-world systems where scalability and response time are essential.
+Furthermore, its stability and generalization ability across diverse datasets (MOOCCube, edX, and NTHU 
+MOOCs) indicate adaptability to different instructional environments, languages, and learner demographics.
+This adaptability is essential for sustaining engagement and customisation in international online education 
+environments.
+The results emphasize the significance of adaptive policy optimization in educational recommender systems.
+Fig. 9. Convergence stability of different models.
+ 
+Scientific Reports |        (2026) 16:10259 17| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+In contrast to conventional deterministic algorithms that depend exclusively on static feature representations, 
+the PPO-driven framework enables the model to adapt dynamically in response to changes in learner behavior, 
+thereby mirroring real-time interests and learning trajectories.
+This adaptability corresponds with contemporary trends in AI-driven personalized learning, where 
+responsiveness and contextual comprehension are crucial for improving learner satisfaction and retention.
+The model’s effective convergence and computing scalability indicate that analogous reinforcement-based 
+and semantics-enhanced frameworks may be applied to other areas, including skill evaluation, career trajectory 
+forecasting, and adaptive curriculum development.
+Future research may investigate cross-domain transferability, multi-modal data integration (e.g., 
+amalgamating text, video, and engagement logs), and elucidative recommendation mechanisms to enhance 
+transparency and confidence in educational AI systems.
+Conclusion and future work
+This study introduced a cohesive hybrid framework, BERT–Actor–Critic–PPO, for intelligent and adaptable 
+course recommendations in online educational settings.
+The model effectively integrates semantic representation learning using BERT with reinforcement learning-
+based policy optimization, capturing both contextual and behavioral aspects of learner-course interactions.
+Experimental assessments across three extensive benchmark datasets MOOCCube, edX, and NTHU 
+MOOCs revealed that the proposed framework consistently surpasses baseline models including SR-HetGNN, 
+HGCR, CNN–Graph Hybrid, and Clustering-Driven Deep Learning, attaining significant improvements in 
+Precision@10, Recall@10, F1-score, and MRR.
+The findings validate that the amalgamation of semantic embeddings, adaptive policy optimization, 
+and reward normalization yields a harmonious architecture that attains elevated accuracy while preserving 
+computing economy.
+The ablation investigation confirmed the significance of each component, while the convergence analysis 
+demonstrated more rapid and consistent learning performance compared to leading approaches.
+Notwithstanding a marginal rise in training duration, the suggested framework continues to be 
+computationally feasible and scalable, rendering it appropriate for practical MOOC platforms and extensive 
+e-learning ecosystems.
+The study highlights the importance of adaptive and feedback-driven customisation in contemporary 
+educational recommender systems, in addition to its empirical success.
+The suggested model’s capacity to dynamically modify recommendations in response to changing learner 
+behavior signifies a transition from static recommendation frameworks to continuous, policy-driven adaptability.
+This adaptability significantly influences the improvement of learner engagement, motivation, and long-term 
+retention in digital learning contexts.
+Several research avenues can further advance this study. Integrating multi-modal learning signals such as 
+video engagement, forum conversations, and assessment results could enhance learner modeling and augment 
+contextual comprehension.
+Future research may investigate cross-domain and cross-lingual generalization, allowing the model to adapt 
+across various educational platforms and content kinds.
+Furthermore, incorporating explainable AI (XAI) methods into the reinforcement learning process will 
+improve the transparency and interpretability of suggestions, hence cultivating increased user trust.
+Emerging paradigms, such as multi-agent reinforcement learning and graph neural policy networks, possess 
+the potential to enhance collective intelligence and collaboration within extensive learner communities.
+The suggested BERT–Actor–Critic–PPO model provides a robust framework for enhancing individualized 
+education by combining deep semantic comprehension with adaptive decision-making.
+Its robust generalization, speed, and adaptive learning characteristics establish it as a potential method for 
+developing the next generation of intelligent, scalable, and context-aware recommendation systems in online 
+education.
+Data availability
+The datasets utilized and/or examined in the current investigation are accessible from the corresponding author 
+upon reasonable request.
+Received: 14 December 2025; Accepted: 17 February 2026
+References
+ 1. Hoi, S. C., Sahoo, D., Lu, J. & Zhao, P . Online learning: A comprehensive survey. Neurocomputing 459, 249–289 (2021).
+ 2. Madni, S. H. H. et al. Factors influencing the adoption of IoT for E-learning in higher educational institutes in developing countries. 
+Front. Psychol. 13, 915596 (2022).
+ 3. Kapoor, K. edX courses dataset 2021 [Dataset]. Kaggle. (2021).  h t t p s :   /  / w w  w . k a g g l  e . c  o m  / d a t a s  e  t s / k  h u s h e e  k a p  o o  r /  e d x - c o u  r s e s - d a t  
+a s e t - 2 0 2 1
+ 4. Tahir, S., Hafeez, Y ., Abbas, M. A., Nawaz, A. & Hamid, B. Smart learning objects retrieval for E-Learning with contextual 
+recommendation based on collaborative filtering. Educ. Inform. Technol. 27 (6), 8631–8668 (2022).
+ 5. Torkashvand, A., Jameii, S. M. & Reza, A. Deep learning-based collaborative filtering recommender systems: a comprehensive and 
+systematic review. Neural Comput. Appl. 35 (35), 24783–24827 (2023).
+ 6. Huang, C. Q. et al. XKT: toward explainable knowledge tracing model with cognitive learning theories for questions of multiple 
+knowledge concepts. IEEE Trans. Knowl. Data Eng. 36 (11), 7308–7325 (2024).
+Scientific Reports |        (2026) 16:10259 18| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+ 7. Embarak, O. An adaptive paradigm for smart education systems in smart cities using the internet of behaviour (IoB) and explainable 
+artificial intelligence (XAI). In 2022 8th International Conference on Information Technology Trends (ITT) (pp. 74–79). IEEE. 
+(2022).
+ 8. Maatuk, A. M., Elberkawi, E. K., Aljawarneh, S., Rashaideh, H. & Alharbi, H. The COVID-19 pandemic and E-learning: challenges 
+and opportunities from the perspective of students and instructors. J. Comput. High. Educ. 34 (1), 21–38 (2022).
+ 9. Zeng, F ., Tang, R. & Wang, Y . User personalized recommendation algorithm based on GRU network model in social networks. 
+Mobile information systems, 2022(1), 1487586. (2022).
+ 10. Huang, F ., Bei, Y ., Y ang, Z., Jiang, J., Chen, H., Shen, Q., … Yu, P . S. (2025, March).Large language model simulator for cold-
+start recommendation. In Proceedings of the Eighteenth ACM International Conference on Web Search and Data Mining (pp. 
+261–270).
+ 11. Nikolakopoulos, A. N., Ning, X., Desrosiers, C. & Karypis, G. Trust your neighbors: A comprehensive survey of neighborhood-
+based methods for recommender systems. Recommender Syst. Handb., 39–89. (2021).
+ 12. Roy, D. & Dutta, M. A systematic review and research perspective on recommender systems. J. Big Data. 9 (1), 59 (2022).
+ 13. Wang, Y ., Ma, W ., Zhang, M., Liu, Y . & Ma, S. A survey on the fairness of recommender systems. ACM Trans. Inform. Syst. 41 (3), 
+1–43 (2023).
+ 14. Romero, C. (ed, S.) Educational data mining and learning analytics: An updated survey. Wiley interdisciplinary reviews: Data Min. 
+Knowl. discovery 10 3 e1355 (2020).
+ 15. Xu, H., Zhao, N., Xu, N., Niu, B. & Zhao, X. Reinforcement learning-based dynamic event-triggered prescribed performance 
+control for nonlinear systems with input delay. Int. J. Syst. Sci., 1–16. (2025).
+ 16. Perifanis, V . & Efraimidis, P . S. Federated neural collaborative filtering. Knowl. Based Syst. 242, 108441 (2022).
+ 17. Thorat, S. A., Ashwini, G. & Seema, M. Survey on collaborative and content-based recommendation systems. In 2023 5th 
+International Conference on Smart Systems and Inventive Technology (ICSSIT) (pp. 1541–1548). IEEE. (2023).
+ 18. Bai, T., Wen, J. R., Zhang, J. & Zhao, W . X. A neural collaborative filtering model with interaction-based neighborhood. In 
+Proceedings of the 2017 ACM on Conference on Information and Knowledge Management (pp. 1979–1982). (2017).
+ 19. Zhao, X. et al. Deep reinforcement learning for list-wise recommendations. arXiv preprint arXiv :180100209. (2017).
+ 20. Alshareet, O. & Awasthi, A. Collaborative filtering in the age of AI: foundations, innovations, and emerging trends. Computing 107 
+(11), 1–56 (2025).
+ 21. Biswas, P . K. & Liu, S. A hybrid recommender system for recommending smartphones to prospective customers. Expert Syst. Appl. 
+208, 118058 (2022).
+ 22. Yuan, H. & Hernandez, A. A. User cold start problem in recommendation systems: A systematic review. IEEE access. 11, 136958–
+136977 (2023).
+ 23. Lu, J., Wu, D., Mao, M., Wang, W . & Zhang, G. Recommender system application developments: a survey. Decis. Support Syst. 74, 
+12–32 (2015).
+ 24. Xiao, J. et al. Attentional factorization machines: Learning the weight of feature interactions via attention networks. arXiv preprint 
+arXiv :170804617. (2017).
+ 25. Guo, H., Tang, R., Y e, Y ., Li, Z. & He, X. DeepFM: a factorization-machine based neural network for CTR prediction. arXiv preprint 
+arXiv :170304247. (2023).
+ 26. Chen, X., Y ao, L., McAuley, J., Zhou, G. & Wang, X. Deep reinforcement learning in recommender systems: A survey and new 
+perspectives. Knowl. Based Syst. 264, 110335 (2023).
+ 27. Chen, M. et al. Off-policy actor-critic for recommender systems. In Proceedings of the 16th ACM Conference on Recommender 
+Systems (pp. 338–349). (2022).
+ 28. Wang, Y ., Ma, D., Ma, J. & Jin, Q. HGCR: A heterogeneous graph-enhanced interactive course recommendation scheme for online 
+learning. IEEE Trans. Learn. Technol. 17, 364–374 (2023).
+ 29. Sun, F . et al. BERT4Rec: Sequential recommendation with bidirectional encoder representations from transformer. In Proceedings 
+of the 28th ACM international conference on information and knowledge management (pp. 1441–1450). (2019), November.
+ 30. Deng, W ., Zhu, P ., Chen, H., Yuan, T. & Wu, J. Knowledge-aware sequence modelling with deep learning for online course 
+recommendation. Inf. Process. Manag. 60 (4), 103377 (2023).
+ 31. Chen, J. et al. SR-HetGNN: session-based recommendation with heterogeneous graph neural network. Knowl. Inf. Syst. 66 (2), 
+1111–1134 (2024).
+ 32. Chinnadurai, J., Karthik, A., Ramesh, J. V . N., Banerjee, S., Rajlakshmi, P . V ., Rao,K. V ., … Rajaram, A. (2024). Enhancing online 
+education recommendations through clustering-driven deep learning. Biomedical Signal Processing and Control, 97, 106669.
+ 33. Chen, X., Wang, X., Wang, Y ., Liu, D. & Zhang, W . Leveraging deep learning and graph analysis for enhanced course 
+recommendations in online education. Sci. Rep. 15 (1), 18623 (2025).
+ 34. Sattar, A. & Bacciu, D. Graph neural network for context-aware recommendation. Neural Process. Lett. 55 (5), 5357–5376 (2023).
+ 35. Pulido-Gaytan, L. B., Tchernykh, A., Cortés-Mendoza, J. M., Babenko, M. & Radchenko, G. A survey on privacy-preserving 
+machine learning with fully homomorphic encryption. In Latin American High Performance Computing Conference (pp. 115–
+129). Cham: Springer International Publishing. (2020).
+ 36. THU-KEG. MOOCCube dataset [Dataset]. GitHub. (2020). https://github.com/THU-KEG/MOOCCubeX
+ 37. NTHU MOOCs dataset. [Dataset]. GitHub. (2021). https://github.com/lingm5038-ctrl/NTHU-MOOCs-Data
+Author contributions
+All authors contributed to the conception and design of the study. Xia Chunqin and Wu Peixi conducted data 
+collection, simulation, and analysis.
+Funding
+The authors did not obtain any financial assistance for this study.
+Declarations
+Competing interests
+The authors declare no competing interests.
+Ethical approval
+Not relevant.
+Additional information
+Correspondence and requests for materials should be addressed to X.C.
+Scientific Reports |        (2026) 16:10259 19| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/
+Reprints and permissions information is available at www.nature.com/reprints.
+Publisher’s note Springer Nature remains neutral with regard to jurisdictional claims in published maps and 
+institutional affiliations.
+Open Access  This article is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 
+4.0 International License, which permits any non-commercial use, sharing, distribution and reproduction in 
+any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide 
+a link to the Creative Commons licence, and indicate if you modified the licensed material. Y ou do not have 
+permission under this licence to share adapted material derived from this article or parts of it. The images or 
+other third party material in this article are included in the article’s Creative Commons licence, unless indicated 
+otherwise in a credit line to the material. If material is not included in the article’s Creative Commons licence 
+and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to 
+obtain permission directly from the copyright holder. To view a copy of this licence, visit  h t t p : / / c r e a t i v e c o m m o 
+n s . o r g / l i c e n s e s / b y - n c - n d / 4 . 0 /     .  
+© The Author(s) 2026 
+Scientific Reports |        (2026) 16:10259 20| https://doi.org/10.1038/s41598-026-40952-2
+www.nature.com/scientificreports/

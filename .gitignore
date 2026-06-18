@@ -216,3 +216,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Original and processed datasets
+dataset/*
+!dataset/README.md
+data/processed/
+
+# Downloaded AI models
+models/
+
+# Keep only lightweight runnable demo
+artifacts/*
+!artifacts/fast_demo/
+!artifacts/fast_demo/**
+artifacts/fast_demo/exports/
+
+# Research paper
+s41598-026-40952-2.pdf
+
+# Temporary pytest folders
+pytest-cache-files-*/

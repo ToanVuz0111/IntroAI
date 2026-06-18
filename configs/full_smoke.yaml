@@ -1,0 +1,88 @@
+project_root: .
+seed: 42
+artifacts_dir: artifacts/full_smoke
+
+data:
+  mooccube_dir: dataset/MOOCCube
+  processed_dir: data/processed/mooccube_full_smoke
+  max_users: 300
+  interaction_source: video_activity
+  user_hash_salt: introai-full-smoke
+  course_hash_salt: introai-course-smoke
+  split_strategy: temporal
+  outlier_filter:
+    enabled: true
+    iqr_factor: 3.0
+
+embedding:
+  backend: bert
+  local_model_dir: models/bert-base-multilingual-cased
+  checkpoint_dir: artifacts/full_smoke/bert_checkpoint
+  batch_size: 32
+  max_length: 128
+
+bert_finetuning:
+  enabled: true
+  unfreeze_last_layers: 4
+  epochs: 1
+  batch_size: 8
+  learning_rate: 0.00002
+  weight_decay: 0.01
+  margin: 0.2
+  max_triplets: 300
+
+model:
+  dropout: 0.1
+
+training:
+  epochs: 5
+  early_stopping_patience: 3
+  batch_size: 128
+  learning_rate: 0.0001
+  max_samples: 10000
+  negative_samples_per_positive: 3
+  ppo_clip_epsilon: 0.2
+  discount_factor: 0.99
+
+environment:
+  response_mode: synthetic_simulator
+  max_steps: 10
+  ppo_iterations: 8
+  rollout_steps: 256
+  update_epochs: 4
+  gae_lambda: 0.95
+  entropy_coefficient: 0.01
+  supervised_pretrain_epochs: 20
+  early_stopping_patience: 5
+  early_stopping_min_delta: 0.0001
+  minimum_learning_rate: 0.000001
+  normalize_rewards: false
+  normalize_advantages: true
+
+mahalanobis:
+  covariance: ledoit_wolf
+  temperature: 1.0
+  n_clusters: 8
+  pca_components: 64
+  context_weight: 1.0
+  logit_fusion_alpha: 0.2
+  logit_fusion_beta: 0.1
+
+recommendation:
+  top_k: 10
+  # Selected from validation-style ablation; BERT remains in the 778-D policy state.
+  semantic_weight: 0.0
+  action_space: full_catalog
+  candidate_size: 100
+
+translation:
+  backend: transformers
+  local_model_dir: models/opus-mt-zh-en
+
+evaluation:
+  max_users: 50
+  k_values: [5, 10, 20]
+  seeds: [42, 52, 62, 72, 82]
+
+efficiency:
+  sessions: 50

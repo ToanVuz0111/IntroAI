@@ -1,0 +1,54 @@
+project_root: .
+seed: 42
+artifacts_dir: artifacts/fast_demo
+
+data:
+  mooccube_dir: dataset/MOOCCube
+  processed_dir: data/processed/mooccube
+  max_users: 300
+  interaction_source: enrollment
+  user_hash_salt: introai-demo
+  course_hash_salt: introai-course-demo
+  split_strategy: temporal
+  outlier_filter:
+    enabled: true
+    iqr_factor: 3.0
+
+embedding:
+  backend: hash
+  local_model_dir: models/bert-base-multilingual-cased
+  checkpoint_dir: artifacts/fast_demo/bert_checkpoint
+  batch_size: 16
+  max_length: 128
+
+model:
+  dropout: 0.1
+
+training:
+  epochs: 2
+  batch_size: 64
+  learning_rate: 0.0003
+  max_samples: 3000
+
+mahalanobis:
+  covariance: ledoit_wolf
+  temperature: 1.0
+  n_clusters: 8
+  pca_components: 32
+  context_weight: 1.0
+  logit_fusion_alpha: 0.2
+  logit_fusion_beta: 0.1
+
+recommendation:
+  top_k: 10
+  semantic_weight: 0.5
+  action_space: candidate_set
+  candidate_size: 100
+
+translation:
+  # Translation is intentionally invoked only after the final top-K is ranked.
+  backend: offline_glossary
+  local_model_dir: models/opus-mt-zh-en
+
+evaluation:
+  max_users: 10

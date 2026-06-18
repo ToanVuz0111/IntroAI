@@ -1,0 +1,12 @@
+{
+  "embedding_backend": "hash",
+  "course_embedding_shape": [
+    706,
+    768
+  ],
+  "user_feature_shape": [
+    300,
+    10
+  ],
+  "state_dimension": 778
+}

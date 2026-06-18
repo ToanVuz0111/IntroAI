@@ -1,0 +1,15 @@
+pandas>=2.0
+numpy>=1.26
+torch>=2.2
+scikit-learn>=1.4
+scipy>=1.12
+transformers>=4.40
+huggingface-hub>=0.25
+sentencepiece>=0.2
+sacremoses>=0.1
+PyYAML>=6.0
+streamlit>=1.35
+gymnasium>=1.0
+plotly>=6.0
+pytest>=8.0
+pypdf>=6.0

@@ -1,0 +1,11 @@
+{
+  "samples": 893,
+  "state_dimension": 778,
+  "epochs": 2,
+  "losses": [
+    0.12538060865231923,
+    0.07452757816229548
+  ],
+  "actor_parameters": 232449,
+  "critic_parameters": 232449
+}
